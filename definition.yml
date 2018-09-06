@@ -1,5 +1,6 @@
 id: periodpc
 docker_repository: dynverse/ti_periodpc
+singularity_collection: 1562
 container_url: https://github.com/dynverse/ti_periodpc
 name: Periodic PrinCurve
 type: algorithm_test
