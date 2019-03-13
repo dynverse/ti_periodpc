@@ -1,31 +1,34 @@
-id: periodpc
-docker_repository: dynverse/ti_periodpc
-singularity_collection: 1562
-container_url: https://github.com/dynverse/ti_periodpc
-name: Periodic PrinCurve
-source: offtheshelf
-platform: R
-trajectory_types:
-- cycle
-topology_inference: fixed
+method:
+  id: periodpc
+  name: Periodic PrinCurve
+  source: offtheshelf
+  platform: R
+
+container:
+  url: https://github.com/dynverse/ti_periodpc
+  docker: dynverse/ti_periodpc
+
+wrapper:
+  type: cyclic_trajectory
+  topology_inference: fixed
+  trajectory_types:
+  - cyclic
+  example: /code/example.R
+  input_required:
+  - expression
+
 parameters:
-  ndim:
+  - id: ndim
     type: integer
-    default: 3.0
-    lower: 2.0
-    upper: 10.0
-  maxit:
+    default: 3
+    distribution:
+      type: uniform
+      lower: 2
+      upper: 10
+  - id: maxit
     type: integer
-    default: 10.0
-    lower: 0.0e+00
-    upper: 100.0
-input:
-  format: rds
-  required: expression
-output:
-  format: rds
-  outputs:
-  - cyclic_trajectory
-  - dimred
-  - timings
-wrapper_type: cyclic_trajectory
+    default: 10
+    distribution:
+      type: uniform
+      lower: 0
+      upper: 100
