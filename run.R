@@ -14,7 +14,7 @@ library(purrr)
 #   ____________________________________________________________________________
 #   Load data                                                               ####
 
-params <- task$params
+parameters <- task$parameters
 expression <- task$expression
 
 #   ____________________________________________________________________________
@@ -24,10 +24,10 @@ expression <- task$expression
 checkpoints <- list(method_afterpreproc = Sys.time())
 
 # perform PCA dimred
-dimred <- dyndimred::dimred(expression, method = "pca", ndim = params$ndim)
+dimred <- dyndimred::dimred(expression, method = "pca", ndim = parameters$ndim)
 
 # apply principal curve with periodic lowess smoother
-fit <- princurve::principal_curve(dimred, smoother = "periodic.lowess", maxit = params$maxit)
+fit <- princurve::principal_curve(dimred, smoother = "periodic.lowess", maxit = parameters$maxit)
 
 # get pseudotime
 pseudotime <- fit$lambda %>% magrittr::set_names(rownames(expression))
