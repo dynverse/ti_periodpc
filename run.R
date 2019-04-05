@@ -1,57 +1,58 @@
-library(jsonlite)
-library(readr)
-library(dplyr)
-library(purrr)
+#!/usr/local/bin/Rscript
+
+task <- dyncli::main()
+# task <- dyncli::main(
+#   c("--dataset", "./example.h5", "--output", "./output.h5"),
+#   "./definition.yml"
+# )
+
+library(dplyr, warn.conflicts = FALSE)
+library(purrr, warn.conflicts = FALSE)
+library(dynwrap, warn.conflicts = FALSE)
 
 #   ____________________________________________________________________________
 #   Load data                                                               ####
 
-data <- read_rds("/ti/input/data.rds")
-params <- jsonlite::read_json("/ti/input/params.json")
+parameters <- task$parameters
+expression <- task$expression
 
-#' @examples
-#' data <- dyntoy::generate_dataset(id = "test", num_cells = 300, num_features = 300, model = "linear") %>% c(., .$prior_information)
-#' params <- yaml::read_yaml("containers/periodpc/definition.yml")$parameters %>%
-#'   {.[names(.) != "forbidden"]} %>%
-#'   map(~ .$default)
-
-expression <- data$expression
 #   ____________________________________________________________________________
 #   Infer trajectory                                                        ####
 
 # TIMING: done with preproc
-checkpoints <- list(method_afterpreproc = as.numeric(Sys.time()))
+checkpoints <- list(method_afterpreproc = Sys.time())
 
 # perform PCA dimred
-dimred <- dyndimred::dimred(expression, method = "pca", ndim = params$ndim)
+dimred <- dyndimred::dimred(expression, method = "pca", ndim = parameters$ndim)
 
 # apply principal curve with periodic lowess smoother
-fit <- princurve::principal_curve(dimred, smoother = "periodic.lowess", maxit = params$maxit)
+fit <- princurve::principal_curve(dimred, smoother = "periodic.lowess", maxit = parameters$maxit)
 
 # get pseudotime
 pseudotime <- fit$lambda %>% magrittr::set_names(rownames(expression))
 
-# construct segments
-path <- fit$s[fit$ord, , drop = FALSE]
-dimred_trajectory_segments <- cbind(
-  path,
-  path[c(seq(2, nrow(path)), 1), ,drop = F]
-) %>%
-  magrittr::set_colnames(c(paste0("from_", colnames(path)), paste0("to_", colnames(path))))
-
 # TIMING: done with method
-checkpoints$method_aftermethod <- as.numeric(Sys.time())
+checkpoints$method_aftermethod <- Sys.time()
 
-# return output
-output <- lst(
-  cell_ids = rownames(expression),
-  pseudotime = pseudotime,
-  dimred = dimred,
-  dimred_trajectory_segments = dimred_trajectory_segments,
-  timings = checkpoints
-)
+# creating extra output for visualisation purposes
+dimred_segment_points <- fit$s
 
 #   ____________________________________________________________________________
 #   Save output                                                             ####
+output <-
+  dynwrap::wrap_data(cell_ids = rownames(expression)) %>%
+  dynwrap::add_cyclic_trajectory(pseudotime = pseudotime) %>%
+  dynwrap::add_timings(checkpoints)
 
-write_rds(output, "/ti/output/output.rds")
+dimred_segment_progressions <- output$progressions %>% select(from, to, percentage)
+
+output <- output %>%
+  dynwrap::add_dimred(
+    dimred = dimred,
+    dimred_segment_points = dimred_segment_points,
+    dimred_segment_progressions = dimred_segment_progressions,
+    connect_segments = TRUE
+  )
+
+dyncli::write_output(output, task$output)
+
