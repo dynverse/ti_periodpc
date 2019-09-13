@@ -11,7 +11,7 @@ container:
 wrapper:
   type: cyclic_trajectory
   topology_inference: fixed
-  trajectory_types: cyclic
+  trajectory_types: cycle
   input_required: expression
 
 parameters:
